@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "Node",
+        "jsx": "react-jsx",
+        "baseUrl": "./",
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ]
+        },
+        "checkJs": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": [
+        "src",
+        "vite.config.js"
+    ]
+}

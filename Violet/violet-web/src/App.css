@@ -1,0 +1,491 @@
+/* ================================================
+   VIOLET - Stranger Things Edition (Polished & Premium)
+   Theme: Cinematic Sci-Fi Horror (Stranger Things S4 Vibe)
+   ================================================ */
+
+/* Google Fonts: 
+   - Merriweather: for the title (Benguiat alternative) 
+   - Space Grotesk: for a premium retro-future tech look (Headers)
+   - Inter: for clean, readable body text
+*/
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@900&family=Space+Grotesk:wght@300;500;700&family=Inter:wght@300;400;600&display=swap');
+
+/* :root moved to index.css for theme support
+   See index.css for --bg-void, --text-primary, etc.
+*/
+
+/* ================================================
+   Base Styles
+   ================================================ */
+body {
+  margin: 0;
+  background-color: var(--bg-void);
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  /* Crisp text */
+}
+
+/* Cinematic Grain (Subtle) */
+/* Cinematic Grain (Subtle) - Removed for clean look */
+.app::after {
+  display: none;
+}
+
+/* Vignette (Atmosphere) */
+/* Vignette (Atmosphere) - Removed */
+.app::before {
+  display: none;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 50% 30%, #f3e8ff 0%, #f8fafc 80%);
+}
+
+/* ================================================
+   Header & Logo
+   ================================================ */
+.glass-header {
+  padding: 1.5rem 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 50;
+}
+
+.logo-text h1 {
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: 2.2rem;
+  letter-spacing: -1px;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--stranger-red);
+  text-shadow: 0 0 20px rgba(255, 31, 31, 0.4);
+  margin: 0;
+  position: relative;
+}
+
+/* "The Upside Down" reflection effect on logo */
+.logo-text h1::after {
+  content: "VIOLET";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  transform: scaleY(-0.5);
+  opacity: 0.2;
+  filter: blur(2px);
+  background: linear-gradient(to bottom, var(--stranger-red), transparent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0;
+}
+
+.tagline {
+  font-family: var(--font-header);
+  font-weight: 300;
+  letter-spacing: 4px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  margin-top: 5px;
+  display: block;
+}
+
+.logo-icon {
+  display: none;
+}
+
+/* ================================================
+   Main Layout
+   ================================================ */
+.main-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 40% 60%;
+  gap: 4rem;
+  padding: 2rem 4rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  align-items: center;
+}
+
+/* 3D Visualizer Area */
+.orb-section {
+  position: relative;
+  height: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.orb-container {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.voice-control {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  z-index: 50;
+}
+
+.mic-button {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid var(--glass-border);
+  color: var(--stranger-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 10px 20px rgba(139, 92, 246, 0.1);
+}
+
+.mic-button:hover {
+  background: rgba(255, 31, 31, 0.1);
+  border-color: var(--stranger-red);
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(255, 31, 31, 0.2);
+}
+
+.mic-button.listening {
+  background: var(--stranger-red);
+  color: white;
+  box-shadow: 0 0 40px rgba(255, 31, 31, 0.4);
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 31, 31, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 20px rgba(255, 31, 31, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 31, 31, 0);
+  }
+}
+
+.voice-status {
+  font-family: var(--font-header);
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.voice-status.active {
+  color: var(--stranger-red);
+  text-shadow: 0 0 10px rgba(255, 31, 31, 0.5);
+}
+
+/* ================================================
+   Chat Interface - Premium Glass
+   ================================================ */
+.chat-section {
+  height: 700px;
+  background: var(--bg-panel);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px);
+}
+
+.chat-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.chat-header h2 {
+  font-family: var(--font-header);
+  font-weight: 500;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.messages-container {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.message {
+  display: flex;
+  gap: 1rem;
+  max-width: 85%;
+}
+
+.message.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.message.assistant .message-avatar {
+  color: var(--stranger-red);
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.message-bubble {
+  background: white;
+  padding: 1.2rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  line-height: 1.6;
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 400;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+}
+
+.message.user .message-bubble {
+  background: var(--stranger-red);
+  color: white;
+  border-color: var(--stranger-red);
+}
+
+.message-time {
+  font-size: 0.7rem;
+  color: #555;
+  margin-top: 0.5rem;
+  display: block;
+}
+
+/* Input Area */
+.chat-input-form {
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  /* Fix alignment */
+  gap: 1rem;
+}
+
+.chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--text-primary);
+  padding: 1rem;
+  outline: none;
+}
+
+.chat-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.send-button {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--stranger-red);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.send-button:hover {
+  border-color: var(--stranger-red);
+  background: rgba(255, 31, 31, 0.1);
+}
+
+/* ================================================
+   Login Screen - Elegant
+   ================================================ */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-box {
+  width: 420px;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(30px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  z-index: 10;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.05);
+}
+
+.login-header h1 {
+  font-family: var(--font-title);
+  color: var(--stranger-red);
+  font-size: 2rem;
+  text-align: center;
+  margin: 0;
+  text-shadow: 0 0 15px rgba(255, 31, 31, 0.3);
+}
+
+.login-header p {
+  text-align: center;
+  font-family: var(--font-header);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.input-group input:focus {
+  background: white;
+  border-color: var(--stranger-red);
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+}
+
+.login-btn {
+  width: 100%;
+  padding: 1rem;
+  background: var(--stranger-red);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-header);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(231, 29, 54, 0.4);
+}
+
+.divider {
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.voice-auth-btn {
+  width: 100%;
+  padding: 1rem;
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-header);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.voice-auth-btn:hover {
+  border-color: var(--stranger-red);
+  color: var(--stranger-red);
+}
+
+/* ================================================
+   Mobile Polishing
+   ================================================ */
+@media (max-width: 900px) {
+  .main-content {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+    gap: 2rem;
+  }
+
+  .orb-section {
+    height: 350px;
+  }
+
+  .chat-section {
+    height: 600px;
+  }
+
+  .glass-header {
+    padding: 1rem;
+  }
+}
+
+/* Particles */
+.particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  background: var(--stranger-red);
+  border-radius: 50%;
+  opacity: 0.2;
+}
