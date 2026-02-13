@@ -9,6 +9,10 @@ import './App.css'
 // ================================================
 
 function App() {
+  useEffect(() => {
+    document.title = "VIOLET AI"
+  }, [])
+
   const [messages, setMessages] = useState([])
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -132,7 +136,7 @@ function App() {
     const checkConnection = () => {
       const protocol = window.location.protocol
       const hostname = window.location.hostname
-      fetch(`${protocol}//${hostname}:8000/health`)
+      fetch(`${protocol}//${hostname}:8001/health`)
         .then(res => res.json())
         .then(() => setIsConnected(true))
         .catch(() => setIsConnected(false))

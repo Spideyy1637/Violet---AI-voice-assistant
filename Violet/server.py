@@ -17,6 +17,9 @@ import sys
 import threading
 import time
 import numpy as np
+import json
+import pywhatkit as kit
+import pyautogui
 
 # Force UTF-8 encoding for Windows console
 sys.stdout.reconfigure(encoding='utf-8')
@@ -28,7 +31,8 @@ import math
 from collections import deque
 
 # Configuration
-API_KEY = 'AIzaSyDKlnBROOL3temn2-rYJU4KKcWQQqqu844'
+from config import GEMINI_API_KEY
+API_KEY = GEMINI_API_KEY
 
 # Advanced Memory
 CONVERSATION_HISTORY = deque(maxlen=10)  # Stores last 10 interactions
@@ -144,19 +148,30 @@ Produce clean, readable, professional answers that look like they were written b
 
 app = FastAPI(title="VIOLET Voice Assistant API")
 
-# Enable CORS for React frontend
+# Enable CORS for React frontend (Development)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://localhost:5173",
-        "http://127.0.0.1:5173",
-        "https://127.0.0.1:5173"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+# Mount static files (React build)
+static_dir = os.path.join(os.path.dirname(__file__), "violet-web", "dist")
+if os.path.exists(static_dir):
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+
+@app.get("/")
+async def serve_ui():
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "VIOLET Backend Running (UI not found - please build frontend)"}
 
 # WebSocket Connection Manager
 class ConnectionManager:
@@ -778,6 +793,71 @@ def ask_gemini(question, mood="neutral"):
         print(f"DEBUG: Critical Error: {e}")
         return f"Sorry boss, something went wrong: {str(e)}"
 
+CONTACTS_FILE = os.path.join(os.path.dirname(__file__), "contacts.json")
+
+def load_contacts():
+    try:
+        if os.path.exists(CONTACTS_FILE):
+            with open(CONTACTS_FILE, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"DEBUG: Error loading contacts: {e}")
+    return {}
+
+def save_contact(name, phone):
+    contacts = load_contacts()
+    # Normalize name and ensure phone is string
+    name_key = name.lower().strip()
+    contacts[name_key] = str(phone).strip()
+    try:
+        with open(CONTACTS_FILE, 'w') as f:
+            json.dump(contacts, f, indent=4)
+        return f"Saved {name} as {phone}, boss!"
+    except Exception as e:
+        return f"Error saving contact: {str(e)}"
+
+def send_whatsapp_message(contact_name, message):
+    contacts = load_contacts()
+    phone = contacts.get(contact_name.lower().strip())
+    
+    if not phone:
+        return f"Sorry boss, I don't have a phone number for {contact_name}. You can say 'save {contact_name} as [phone number]' to add them."
+    
+    try:
+        # Normalize phone number
+        phone = "".join(c for c in phone if c.isdigit())
+        
+        # If it's a 10-digit number (common in India), prepend +91
+        if len(phone) == 10:
+            phone = f"+91{phone}"
+        elif not phone.startswith('+'):
+            phone = f"+{phone}"
+            
+        print(f"DEBUG: Normalized phone number: {phone}")
+        
+        # WhatsApp Desktop URI protocol
+        import urllib.parse
+        encoded_msg = urllib.parse.quote(message)
+        # Use 'whatsapp://send?phone=...' to trigger the native app
+        whatsapp_url = f"whatsapp://send?phone={phone}&text={encoded_msg}"
+        
+        print(f"DEBUG: Triggering WhatsApp Desktop: {whatsapp_url}")
+        webbrowser.open(whatsapp_url)
+        
+        # New: Auto-send the message by pressing 'enter' in a separate thread
+        def auto_send():
+            time.sleep(5) # Increased delay to 5 seconds
+            pyautogui.press('enter')
+            time.sleep(0.5)
+            pyautogui.press('enter') # Double tap for reliability
+            print("DEBUG: Auto-sent WhatsApp message (pressed enter twice)")
+            
+        threading.Thread(target=auto_send, daemon=True).start()
+        
+        return f"Opening WhatsApp Desktop to send your message to {contact_name}, boss!"
+    except Exception as e:
+        return f"Error opening WhatsApp Desktop: {str(e)}"
+
 def process_command(command):
     command_str = command.strip()
     command_lower = command_str.lower()
@@ -787,8 +867,52 @@ def process_command(command):
     
     response = ""
 
-    # Regex for precise greeting matching (exclude if translating)
-    if re.search(r'\b(hello|hi|hey)\b', command_lower) and not any(w in command_lower for w in ["translate", "in tamil", "in hindi", "in english", "to tamil", "to hindi", "to english"]):
+    # WhatsApp - Messaging (check BEFORE greeting to avoid collision)
+    is_whatsapp = any(w in command_lower for w in ["whatsapp", "on whatsapp"])
+    is_msg_intent = any(w in command_lower for w in ["send", "message", "saying", "sayy", "say"])
+    
+    print(f"DEBUG: is_whatsapp={is_whatsapp}, is_msg_intent={is_msg_intent}")
+    
+    if is_whatsapp and is_msg_intent:
+        # Extract contact and message
+        # Example: "send a message to Thamim on whatsapp saying hello" or "sayy 'Hi ...' to him"
+        trigger_word = None
+        if "saying" in command_lower:
+            trigger_word = "saying"
+        elif "sayy" in command_lower:
+            trigger_word = "sayy"
+        elif "say" in command_lower:
+             trigger_word = "say"
+
+        if trigger_word:
+            parts = command_lower.split(trigger_word)
+            msg = parts[1].strip().strip('"').strip("'")
+            # Clean up contact string
+            contact_part = parts[0]
+            # Replace common filler words to extract the contact name
+            contact_str = contact_part.replace("send", "").replace("a message to", "").replace("the person", "").replace("on whatsapp", "").replace("whatsapp", "").replace("message", "").replace("hii", "").replace("hi", "").strip().strip('"').strip("'")
+            
+            # If contact_str is empty or "him"/"her", try to find if a contact name was mentioned earlier or in history
+            if contact_str in ["him", "her", "them", ""]:
+                response = "I'm not sure who to send the message to, boss. Could you specify the name?"
+            else:
+                response = send_whatsapp_message(contact_str, msg)
+        else:
+            response = "What message would you like me to send on WhatsApp, boss? (Please include 'saying [your message]')"
+    
+    # Save Contact
+    elif "save" in command_lower and "as" in command_lower and not any(w in command_lower for w in ["remind", "alarm"]):
+        # Example: "save loosu thamim as +911234567890"
+        parts = command_lower.replace("save", "").split("as")
+        if len(parts) == 2:
+            name = parts[0].strip()
+            phone = parts[1].strip().replace(" ", "")
+            response = save_contact(name, phone)
+        else:
+            response = "How should I save this contact, boss? Please say 'save [name] as [number]'"
+
+    # Regex for precise greeting matching (exclude if action-oriented)
+    elif re.search(r'\b(hello|hi|hey)\b', command_lower) and not any(w in command_lower for w in ["translate", "message", "whatsapp", "search", "open", "launch"]):
         response = "Hello boss! I'm VIOLET, your personal assistant. How can I help you today?"
     
     # Identity
@@ -1022,39 +1146,46 @@ class ClapDetector:
             import sounddevice as sd
             
             RATE = 44100
-            THRESHOLD = 4000  # Lowered sensitivity further (was 6000)
+            THRESHOLD = 2500  # Lowered sensitivity to 2500 (was 4000)
             
             def audio_callback(indata, frames, time_info, status):
                 if not self.running:
                     raise sd.CallbackStop()
                 
-                if status:
-                    print(f"Audio Status: {status}")
-                
                 audio_data = indata.flatten()
                 peak = np.max(np.abs(audio_data))
                 
-                # Debug print for any significant sound
-                if peak > 2000:
-                    print(f"DEBUG: Sound detected. Peak: {peak}")
+                # Calculate Crest Factor (Impulsiveness)
+                # RMS (Average energy)
+                rms = np.sqrt(np.mean(audio_data.astype(np.float32)**2))
+                crest_factor = peak / rms if rms > 1e-6 else 0
                 
-                if peak > THRESHOLD:
+                # LOG ALL SIGNIFICANT SOUNDS for debugging
+                if peak > 1500:
+                    print(f"DEBUG: Peak={peak:.0f}, Crest={crest_factor:.2f}")
+
+                # A true clap is LOUD and IMPULSIVE (High Crest Factor)
+                # Typical speech has crest factor 3-5. Claps are usually > 8-10.
+                if peak > THRESHOLD and crest_factor > 7.0:
                     now = time.time()
                     with self.lock:
                         # Debounce 0.15s
                         if not self.clap_times or (now - self.clap_times[-1] > 0.15):
-                            # Reset if too much time passed (gap > 3.0s)
-                            if self.clap_times and (now - self.clap_times[-1] > 3.0):
-                                print(f"DEBUG: Resetting clap count (Time gap too large: {now - self.clap_times[-1]:.2f}s)")
+                            # Reset if too much time passed (gap > 2.0s)
+                            if self.clap_times and (now - self.clap_times[-1] > 2.0):
+                                print(f"DEBUG: Resetting clap count (Gap was {now - self.clap_times[-1]:.2f}s)")
                                 self.clap_times = []
                             
                             self.clap_times.append(now)
-                            print(f"👏 Clap {len(self.clap_times)} Detected! (Peak: {peak})")
+                            print(f"👏 Clap {len(self.clap_times)} Detected!")
+                            print(f"   [Details: Peak={peak:.0f}, Crest={crest_factor:.1f}]")
                             
                             if len(self.clap_times) == 3:
                                 # Run blocking action logic in separate thread
                                 threading.Thread(target=self._trigger_action).start()
                                 self.clap_times = []
+                            else:
+                                print(f"👉 Need {3 - len(self.clap_times)} more claps within 2 seconds...")
             
             print(f"DEBUG: Mic Open for Claps (SoundDevice). Threshold: {THRESHOLD}")
             
@@ -1073,7 +1204,7 @@ async def startup_event():
     # Capture the running event loop for thread-safe async calls
     clap_detector.loop = asyncio.get_running_loop()
     # Start clap detection
-    clap_detector.start()
+    # clap_detector.start()
 
 @app.on_event("shutdown")
 async def shutdown_event():

@@ -8,6 +8,7 @@ from google import genai
 import io
 import wave
 import json
+from config import GEMINI_API_KEY
 
 # Try to import sounddevice for microphone access (works with Python 3.14)
 try:
@@ -291,7 +292,7 @@ def process_command(command, api_key):
         return ask_gemini(api_key, command)
 
 def main():
-    API_KEY = 'AIzaSyCr5FxRDDxc7-evSfrAlGZwBukegoznYUg'
+    API_KEY = GEMINI_API_KEY
     voice_mode = True  # Start with voice input by default
     
     print("=" * 70)
