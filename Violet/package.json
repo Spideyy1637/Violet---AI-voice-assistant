@@ -1,0 +1,16 @@
+{
+  "name": "violet-ai",
+  "version": "1.0.0",
+  "description": "VIOLET - Voice Interactive Lightweight Engine for Tasks with IoT Integration",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n \"backend,frontend\" -c \"magenta,cyan\" \"python server.py\" \"cd violet-web && npm run dev\"",
+    "backend": "python server.py",
+    "frontend": "cd violet-web && npm run dev",
+    "build": "cd violet-web && npm run build",
+    "install:all": "cd violet-web && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

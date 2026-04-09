@@ -38,6 +38,20 @@ API_KEY = GEMINI_API_KEY
 CONVERSATION_HISTORY = deque(maxlen=10)  # Stores last 10 interactions
 REMINDERS = []  # Store reminders as list of dicts: {"task": str, "time": str, "created": datetime}
 
+# ==========================================
+# IoT CONFIGURATION
+# ==========================================
+# Update this IP address to match your ESP32's IP (shown in Arduino Serial Monitor)
+ESP32_IP = "192.168.1.45"  # ← Change this to your ESP32's IP address
+ESP32_PORT = 80
+IOT_TIMEOUT = 3  # seconds to wait for ESP32 response
+
+# IoT device states (local cache, synced with ESP32)
+IOT_DEVICES = {
+    "light": {"name": "Light", "relay": "relay1", "state": False},
+    "fan":   {"name": "Fan",   "relay": "relay2", "state": False},
+}
+
 VIOLET_PERSONALITY = """You are a professional, human-like AI assistant running inside a UI that DOES NOT support Markdown rendering.
 
 ════════════════════════════════════
@@ -532,6 +546,103 @@ def play_youtube(query):
         webbrowser.open(youtube_url)
         return f"🎵 I couldn't auto-play, so I opened the search results for '{query}'."
 
+# ==========================================
+# IoT DEVICE CONTROL FUNCTIONS
+# ==========================================
+
+def control_iot_device(device, action):
+    """Send HTTP request to ESP32 to control a relay"""
+    device = device.lower().strip()
+    action = action.lower().strip()
+    
+    if device not in IOT_DEVICES:
+        return f"Sorry boss, I don't recognize the device '{device}'. Available devices: Light, Fan."
+    
+    device_info = IOT_DEVICES[device]
+    relay = device_info["relay"]
+    device_name = device_info["name"]
+    
+    if action not in ["on", "off"]:
+        return f"Sorry boss, I can only turn devices ON or OFF."
+    
+    try:
+        url = f"http://{ESP32_IP}:{ESP32_PORT}/{relay}/{action}"
+        print(f"DEBUG IoT: Sending request to {url}")
+        response = requests.get(url, timeout=IOT_TIMEOUT)
+        
+        if response.status_code == 200:
+            # Update local cache
+            IOT_DEVICES[device]["state"] = (action == "on")
+            state_emoji = "✅" if action == "on" else "❌"
+            return f"{state_emoji} {device_name} turned {action.upper()} successfully, boss!"
+        else:
+            return f"ESP32 responded with error code {response.status_code}, boss."
+            
+    except requests.exceptions.ConnectionError:
+        return f"Could not connect to ESP32 at {ESP32_IP}. Make sure it's powered on and connected to the same Wi-Fi network, boss."
+    except requests.exceptions.Timeout:
+        return f"ESP32 timed out. It might be offline or unreachable, boss."
+    except Exception as e:
+        return f"IoT Error: {str(e)}"
+
+def get_iot_status():
+    """Fetch current device states from ESP32"""
+    try:
+        url = f"http://{ESP32_IP}:{ESP32_PORT}/status"
+        response = requests.get(url, timeout=IOT_TIMEOUT)
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Update local cache
+            IOT_DEVICES["light"]["state"] = (data.get("relay1") == "ON")
+            IOT_DEVICES["fan"]["state"] = (data.get("relay2") == "ON")
+            
+            light_status = "ON 🟢" if IOT_DEVICES["light"]["state"] else "OFF 🔴"
+            fan_status = "ON 🟢" if IOT_DEVICES["fan"]["state"] else "OFF 🔴"
+            
+            return f"🏠 Smart Home Status\n\n💡 Light: {light_status}\n🌀 Fan: {fan_status}"
+        else:
+            return "Could not fetch device status from ESP32, boss."
+            
+    except requests.exceptions.ConnectionError:
+        return f"ESP32 is offline or unreachable at {ESP32_IP}, boss. Make sure it's connected."
+    except requests.exceptions.Timeout:
+        return "ESP32 timed out while fetching status, boss."
+    except Exception as e:
+        return f"IoT Status Error: {str(e)}"
+
+def parse_iot_command(command):
+    """Parse IoT voice commands and return (device, action) or None"""
+    command = command.lower().strip()
+    
+    # Detect action
+    action = None
+    if any(w in command for w in ["turn on", "switch on", "power on", "enable", "start"]):
+        action = "on"
+    elif any(w in command for w in ["turn off", "switch off", "power off", "disable", "stop"]):
+        action = "off"
+    
+    if not action:
+        # Check shorthand: "light on", "fan off"
+        if command.endswith(" on"):
+            action = "on"
+        elif command.endswith(" off"):
+            action = "off"
+    
+    if not action:
+        return None
+    
+    # Detect device
+    device = None
+    if any(w in command for w in ["light", "lights", "lamp", "bulb", "led", "relay 1", "relay1"]):
+        device = "light"
+    elif any(w in command for w in ["fan", "fans", "motor", "relay 2", "relay2"]):
+        device = "fan"
+    
+    if device and action:
+        return (device, action)
+    return None
+
 def set_alarm(time_str):
     """Set an alarm using Windows Clock app"""
     import os
@@ -953,6 +1064,19 @@ def process_command(command):
         except Exception as e:
             response = f"Error shutting down: {str(e)}"
             
+    # IoT Device Control (voice commands)
+    elif any(w in command_lower for w in ["turn on", "turn off", "switch on", "switch off"]) and any(d in command_lower for d in ["light", "lights", "lamp", "bulb", "led", "fan", "fans", "motor", "relay"]):
+        iot_result = parse_iot_command(command_lower)
+        if iot_result:
+            device, action = iot_result
+            response = control_iot_device(device, action)
+        else:
+            response = "Sorry boss, I couldn't understand that IoT command. Try 'turn on the light' or 'turn off the fan'."
+    
+    # IoT Status Check
+    elif any(w in command_lower for w in ["device status", "iot status", "smart home status", "home status", "device state", "show devices"]):
+        response = get_iot_status()
+    
     # Web search
     elif command_lower.startswith("search ") or command_lower.startswith("google "):
         query = command_lower.replace("search ", "").replace("google ", "").strip()
@@ -1098,6 +1222,58 @@ async def chat(request: ChatRequest):
 @app.get("/health")
 async def health():
     return {"status": "healthy", "assistant": "VIOLET"}
+
+
+# ==========================================
+# IoT REST API ENDPOINTS
+# ==========================================
+
+class IoTControlRequest(BaseModel):
+    device: str
+    action: str
+
+@app.get("/api/iot/status")
+async def iot_status():
+    """Get current IoT device states"""
+    try:
+        url = f"http://{ESP32_IP}:{ESP32_PORT}/status"
+        resp = requests.get(url, timeout=IOT_TIMEOUT)
+        if resp.status_code == 200:
+            data = resp.json()
+            # Update local cache
+            IOT_DEVICES["light"]["state"] = (data.get("relay1") == "ON")
+            IOT_DEVICES["fan"]["state"] = (data.get("relay2") == "ON")
+            return {
+                "connected": True,
+                "esp32_ip": ESP32_IP,
+                "devices": {
+                    "light": {"name": "Light", "state": IOT_DEVICES["light"]["state"]},
+                    "fan":   {"name": "Fan",   "state": IOT_DEVICES["fan"]["state"]},
+                }
+            }
+    except:
+        pass
+    
+    # Return cached state if ESP32 is unreachable
+    return {
+        "connected": False,
+        "esp32_ip": ESP32_IP,
+        "devices": {
+            "light": {"name": "Light", "state": IOT_DEVICES["light"]["state"]},
+            "fan":   {"name": "Fan",   "state": IOT_DEVICES["fan"]["state"]},
+        }
+    }
+
+@app.post("/api/iot/control")
+async def iot_control(request: IoTControlRequest):
+    """Control an IoT device"""
+    result = control_iot_device(request.device, request.action)
+    return {
+        "message": result,
+        "device": request.device,
+        "action": request.action,
+        "success": "successfully" in result.lower()
+    }
 
 
 # ==========================================

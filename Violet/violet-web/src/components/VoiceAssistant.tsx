@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Mic, Send, Settings, Bot } from "lucide-react";
+import { Mic, Send, Settings, Bot, Sparkles, Home } from "lucide-react";
 import SettingsPanel from "./ui/SettingsPanel";
+import IoTPanel from "./ui/IoTPanel";
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb";
 import EnergyBeam from "@/components/ui/energy-beam";
 import { AuroraText } from "@/components/ui/aurora-text";
@@ -42,6 +43,7 @@ export function VoiceAssistant({
     setInputText
 }: VoiceAssistantProps) {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isIoTOpen, setIsIoTOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -98,13 +100,23 @@ export function VoiceAssistant({
                         <AuroraText>Violet</AuroraText> AI
                     </span>
                 </div>
-                <button
-                    className="settings-btn"
-                    aria-label="Settings"
-                    onClick={() => setIsSettingsOpen(true)}
-                >
-                    <Settings size={20} />
-                </button>
+                <div className="header-right">
+                    <button
+                        className="settings-btn"
+                        aria-label="Smart Home"
+                        onClick={() => setIsIoTOpen(true)}
+                        title="IoT Devices"
+                    >
+                        <Home size={20} />
+                    </button>
+                    <button
+                        className="settings-btn"
+                        aria-label="Settings"
+                        onClick={() => setIsSettingsOpen(true)}
+                    >
+                        <Settings size={20} />
+                    </button>
+                </div>
             </header>
 
             {/* Chat Area */}
@@ -188,9 +200,16 @@ export function VoiceAssistant({
                 <div ref={messagesEndRef} />
             </main>
 
-            {/* Input Bar */}
             <footer className="chat-input-bar">
-                <div className="input-container">
+                <div className={cn(
+                    "input-container",
+                    isListening && "glittering-border"
+                )}>
+                    {isListening && (
+                        <div className="glitter-sparkle">
+                            <Sparkles size={16} className="sparkle-icon" />
+                        </div>
+                    )}
                     <button
                         onClick={onToggleListening}
                         className={cn(
@@ -213,7 +232,7 @@ export function VoiceAssistant({
                                 handleSend();
                             }
                         }}
-                        placeholder="Message Violet AI..."
+                        placeholder={isListening ? "Listening..." : "Message Violet AI..."}
                         rows={1}
                         className="message-input"
                     />
@@ -230,7 +249,7 @@ export function VoiceAssistant({
                         <Send size={18} />
                     </button>
                 </div>
-            </footer >
+            </footer>
 
             {/* Settings Panel */}
             < SettingsPanel
@@ -238,6 +257,12 @@ export function VoiceAssistant({
                 onClose={() => setIsSettingsOpen(false)}
                 settings={settings}
                 onUpdateSettings={onUpdateSettings}
+            />
+
+            {/* IoT Panel */}
+            <IoTPanel
+                isOpen={isIoTOpen}
+                onClose={() => setIsIoTOpen(false)}
             />
 
             < style > {`
@@ -271,6 +296,12 @@ export function VoiceAssistant({
                     display: flex;
                     align-items: center;
                     gap: 24px;
+                }
+
+                .header-right {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
                 }
 
                 .app-icon {
@@ -537,19 +568,82 @@ export function VoiceAssistant({
                     margin: 0 auto;
                     background: var(--bg-deep);
                     border: 1px solid var(--glass-border);
-                    border-radius: 24px;
-                    padding: 8px 8px 8px 4px;
-                    transition: border-color 0.15s ease;
+                    border-radius: 28px;
+                    padding: 8px 12px 8px 6px;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
                 }
 
                 .input-container:focus-within {
                     border-color: var(--neon-blue);
+                    box-shadow: 0 0 15px rgba(59, 130, 246, 0.1);
+                }
+
+                /* Glittering Border Effect */
+                .glittering-border {
+                    background: var(--bg-deep); /* Keep inner background */
+                    border: 1px solid transparent !important;
+                    box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+                }
+
+                .glittering-border::before {
+                    content: "";
+                    position: absolute;
+                    inset: -2px;
+                    padding: 2px;
+                    border-radius: 30px;
+                    background: linear-gradient(
+                        90deg, 
+                        #8b5cf6, 
+                        #d946ef, 
+                        #3b82f6, 
+                        #22d3ee, 
+                        #8b5cf6
+                    );
+                    background-size: 400% 100%;
+                    -webkit-mask: 
+                        linear-gradient(#fff 0 0) content-box, 
+                        linear-gradient(#fff 0 0);
+                    mask-composite: exclude;
+                    pointer-events: none;
+                    animation: glitter-sweep 4s linear infinite;
+                }
+
+                @keyframes glitter-sweep {
+                    0% { background-position: 0% 50%; }
+                    100% { background-position: 400% 50%; }
+                }
+
+                /* Sparkle Icon */
+                .glitter-sparkle {
+                    position: absolute;
+                    top: -12px;
+                    right: 24px;
+                    background: var(--neon-purple);
+                    color: white;
+                    padding: 4px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 0 10px var(--neon-purple);
+                    animation: sparkle-pulse 2s infinite ease-in-out;
+                    z-index: 10;
+                }
+
+                .sparkle-icon {
+                    filter: drop-shadow(0 0 2px white);
+                }
+
+                @keyframes sparkle-pulse {
+                    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.9; }
+                    50% { transform: scale(1.2) rotate(15deg); opacity: 1; }
                 }
 
                 /* Mic Button */
                 .mic-btn {
-                    width: 40px;
-                    height: 40px;
+                    width: 44px;
+                    height: 44px;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
@@ -558,7 +652,7 @@ export function VoiceAssistant({
                     border: none;
                     color: var(--text-muted);
                     cursor: pointer;
-                    transition: all 0.15s ease;
+                    transition: all 0.2s ease;
                     position: relative;
                     flex-shrink: 0;
                 }
@@ -570,7 +664,8 @@ export function VoiceAssistant({
 
                 .mic-btn.mic-active {
                     color: #ffffff;
-                    background: #ef4444;
+                    background: linear-gradient(135deg, #ef4444, #f43f5e);
+                    box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
                 }
 
                 .mic-pulse {
@@ -602,7 +697,7 @@ export function VoiceAssistant({
                     color: var(--text-primary);
                     font-size: 15px;
                     line-height: 1.5;
-                    padding: 8px 0;
+                    padding: 10px 0;
                     resize: none;
                     max-height: 120px;
                     font-family: inherit;
@@ -610,12 +705,17 @@ export function VoiceAssistant({
 
                 .message-input::placeholder {
                     color: var(--text-muted);
+                    transition: color 0.3s ease;
+                }
+
+                .glittering-border .message-input::placeholder {
+                    color: var(--text-secondary);
                 }
 
                 /* Send Button */
                 .send-btn {
-                    width: 40px;
-                    height: 40px;
+                    width: 44px;
+                    height: 44px;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
@@ -624,7 +724,7 @@ export function VoiceAssistant({
                     border: none;
                     color: var(--text-muted);
                     cursor: not-allowed;
-                    transition: all 0.15s ease;
+                    transition: all 0.2s ease;
                     flex-shrink: 0;
                 }
 
@@ -632,10 +732,12 @@ export function VoiceAssistant({
                     background: var(--neon-blue);
                     color: #ffffff;
                     cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
                 }
 
                 .send-btn.send-active:hover {
-                    opacity: 0.9;
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
                 }
 
                 /* Mobile Responsiveness */
@@ -670,17 +772,22 @@ export function VoiceAssistant({
                     }
 
                     .input-container {
-                        padding: 6px 6px 6px 2px;
+                        padding: 6px 8px 6px 4px;
                     }
 
                     .mic-btn,
                     .send-btn {
-                        width: 36px;
-                        height: 36px;
+                        width: 40px;
+                        height: 40px;
                     }
 
                     .message-input {
                         font-size: 16px; /* Prevents zoom on iOS */
+                    }
+                    
+                    .glitter-sparkle {
+                        top: -10px;
+                        right: 16px;
                     }
                 }
             `}</style >

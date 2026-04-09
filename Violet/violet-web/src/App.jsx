@@ -128,7 +128,7 @@ function App() {
   const handleLogin = (isVoice) => {
     setIsLoggedIn(true)
     const method = isVoice ? "Voice verified" : "Password verified"
-    speak(`Welcome back, Thamim. ${method}. Systems online.`)
+    speak(`Welcome back, Boss. ${method}. Systems online.`)
   }
 
   // Check backend connection

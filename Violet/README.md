@@ -12,6 +12,8 @@ A personal AI voice assistant powered by Google Gemini AI with both voice and te
 - 🗣️ **Text-to-Speech** - VIOLET speaks back to you with a female voice
 - 🌐 **Web UI** - Beautiful React-based web interface
 - ⚡ **Quick Commands** - Time, date, weather, app launching, and web search
+- 🏠 **IoT Integration** - Control smart home devices (lights, fans) with voice via ESP32
+- 📡 **ESP32 Support** - Real hardware relay control over Wi-Fi
 
 ---
 
@@ -26,10 +28,17 @@ Violet/
 ├── assistant.py         # Assistant helper functions
 ├── handlers.py          # Command handlers
 ├── utils.py             # Utility functions
+├── iot/                 # IoT hardware code
+│   └── violet_iot/
+│       └── violet_iot.ino   # ESP32 Arduino sketch
 └── violet-web/          # React frontend (Vite)
-    ├── src/             # React source code
-    ├── package.json     # Node.js dependencies
-    └── index.html       # Entry HTML file
+    ├── src/
+    │   ├── components/
+    │   │   └── ui/
+    │   │       └── IoTPanel.tsx  # IoT dashboard panel
+    │   └── ...
+    ├── package.json
+    └── index.html
 ```
 
 ---
@@ -133,6 +142,11 @@ The web UI will open at `https://localhost:5173`
 | `open firefox` | Open Firefox |
 | `open edge` | Open Microsoft Edge |
 | `search <query>` | Search Google for something |
+| `turn on the light` | Turn ON the light (IoT) |
+| `turn off the light` | Turn OFF the light (IoT) |
+| `turn on the fan` | Turn ON the fan (IoT) |
+| `turn off the fan` | Turn OFF the fan (IoT) |
+| `device status` | Check IoT device states |
 | `hello` / `hi` | Greet VIOLET |
 | Any other question | Ask Gemini AI |
 
@@ -250,65 +264,131 @@ python main.py
 # Terminal 1:
 python server.py
 # Terminal 2:
-cd violet-web && npm install && 
+cd violet-web && npm install && npm run dev
+```
 
+---
 
+## 🏠 IoT Connection (ESP32 Smart Home Control)
 
+VIOLET can control real physical devices like lights and fans using an **ESP32** microcontroller and a **relay module** over Wi-Fi.
 
+### Hardware Requirements
 
+| Component | Purpose |
+|---|---|
+| **ESP32 Dev Board** | Wi-Fi-enabled microcontroller |
+| **2-Channel Relay Module (5V)** | Switches devices ON/OFF |
+| **Breadboard** | Prototyping connections |
+| **Jumper Wires** (M-M, M-F) | Connect components |
+| **USB Cable** (Micro-USB) | Power + program ESP32 |
+| **12V DC Adapter** | Power supply |
+| **Power Supply Module** | Regulated power to breadboard |
+| **LED / Bulb / DC Fan** | Devices to control |
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### Wiring Diagram
 
 ```
+ESP32              Relay Module
+──────             ────────────
+GPIO 26  ────────→  IN1 (Light)
+GPIO 27  ────────→  IN2 (Fan)
+GND      ────────→  GND
+5V / VIN ────────→  VCC
+```
+
+### Software Setup
+
+**Step 1:** Install [Arduino IDE](https://www.arduino.cc/en/software)
+
+**Step 2:** Add ESP32 board support:
+- Go to **File → Preferences**
+- Add this URL to "Additional Board Manager URLs":
+  ```
+  https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+  ```
+- Go to **Tools → Board → Board Manager** → Search **"ESP32"** → Install
+
+**Step 3:** Install required Arduino library:
+- Go to **Sketch → Include Library → Manage Libraries**
+- Search **"ArduinoJson"** by Benoit Blanchon → Install
+
+**Step 4:** Open `iot/violet_iot/violet_iot.ino` in Arduino IDE
+
+**Step 5:** Update Wi-Fi credentials in the sketch:
+```cpp
+const char* WIFI_SSID     = "YOUR_WIFI_NAME";
+const char* WIFI_PASSWORD  = "YOUR_WIFI_PASSWORD";
+```
+
+**Step 6:** Select board & upload:
+- **Tools → Board → ESP32 Dev Module**
+- **Tools → Port → (your COM port)**
+- Click **Upload** ✅
+
+**Step 7:** Open **Serial Monitor** (115200 baud) and note the **IP address** displayed
+
+**Step 8:** Update `server.py` with the ESP32's IP:
+```python
+ESP32_IP = "192.168.1.105"  # ← Replace with your ESP32's IP
+```
+
+### How It Works
+
+```
+User: "Turn on the light"
+         │
+         ▼
+┌─────────────────────┐
+│  VIOLET Backend     │  Parses command → Sends HTTP request
+│  (server.py)        │  GET http://ESP32_IP/relay1/on
+└─────────────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│  ESP32 (Wi-Fi)      │  Sets GPIO 26 HIGH → Relay clicks
+│  violet_iot.ino     │
+└─────────────────────┘
+         │
+         ▼
+      💡 Light ON!
+```
+
+### IoT Voice Commands
+
+| Voice Command | Action |
+|---|---|
+| "Turn on the light" | Activates Relay 1 (GPIO 26) |
+| "Turn off the light" | Deactivates Relay 1 |
+| "Turn on the fan" | Activates Relay 2 (GPIO 27) |
+| "Turn off the fan" | Deactivates Relay 2 |
+| "Switch on/off the lamp" | Controls light (alias) |
+| "Device status" | Shows all device states |
+| "Smart home status" | Shows all device states |
+
+### IoT REST API
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/iot/status` | GET | Returns device states + ESP32 connection |
+| `/api/iot/control` | POST | Control devices. Body: `{"device": "light", "action": "on"}` |
+
+### IoT Dashboard (Web UI)
+
+Click the 🏠 **Home** icon button in the VIOLET header bar to open the IoT Dashboard panel:
+- Toggle switches for Light and Fan
+- Real-time connection status indicator
+- Auto-refreshes every 5 seconds
+
+### ESP32 Direct Access
+
+You can also control devices directly from a browser by visiting:
+- `http://<ESP32_IP>/` — Control dashboard
+- `http://<ESP32_IP>/status` — JSON status
+- `http://<ESP32_IP>/relay1/on` — Light ON
+- `http://<ESP32_IP>/relay1/off` — Light OFF
+- `http://<ESP32_IP>/relay2/on` — Fan ON
+- `http://<ESP32_IP>/relay2/off` — Fan OFF
 
 ---
 
@@ -324,6 +404,7 @@ If you encounter any issues:
 1. Check the Troubleshooting section above
 2. Make sure all dependencies are installed
 3. Verify your internet connection for Gemini AI
+4. For IoT issues, check that ESP32 is on the same Wi-Fi network
 
 ---
 
