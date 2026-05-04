@@ -4,7 +4,7 @@ import { SplineScene } from "@/components/ui/splite";
 import { Card } from "@/components/ui/card"
 import { Spotlight } from "@/components/ui/spotlight"
 import React, { useState } from "react"
-import ShaderBackground from "@/components/ui/shader-background"
+import AuroraBorealisShader from "@/components/ui/aurora-borealis-shader"
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb"
 
 interface Login3DProps {
@@ -139,7 +139,7 @@ export function Login3D({ onLogin }: Login3DProps) {
             <div className="absolute inset-0 z-0 w-full h-full">
                 {/* Shader Background - Deepest Layer */}
                 <div className="absolute inset-0 -z-20">
-                    <ShaderBackground />
+                    <AuroraBorealisShader />
                 </div>
 
                 <SplineScene

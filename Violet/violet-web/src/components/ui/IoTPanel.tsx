@@ -106,8 +106,8 @@ export default function IoTPanel({ isOpen, onClose }: IoTPanelProps) {
                 {/* Connection Status */}
                 <div className={`iot-connection ${status?.connected ? "iot-connected" : "iot-disconnected"}`}>
                     {status?.connected ? <Wifi size={14} /> : <WifiOff size={14} />}
-                    <span>{status?.connected ? "ESP32 Connected" : "ESP32 Offline"}</span>
-                    {status?.esp32_ip && <span className="iot-ip">{status.esp32_ip}</span>}
+                    <span>{status?.connected ? "ESP32 Connected" : "ESP32 Offline (Check Connection)"}</span>
+                    <span className="iot-ip">{status?.esp32_ip || "Target: 10.149.30.220"}</span>
                 </div>
 
                 {/* Devices */}

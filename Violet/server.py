@@ -42,9 +42,9 @@ REMINDERS = []  # Store reminders as list of dicts: {"task": str, "time": str, "
 # IoT CONFIGURATION
 # ==========================================
 # Update this IP address to match your ESP32's IP (shown in Arduino Serial Monitor)
-ESP32_IP = "192.168.1.45"  # ← Change this to your ESP32's IP address
+ESP32_IP = "10.187.1.220"  # ← Change this to your ESP32's IP address
 ESP32_PORT = 80
-IOT_TIMEOUT = 3  # seconds to wait for ESP32 response
+IOT_TIMEOUT = 7  # seconds to wait for ESP32 response (increased for stability)
 
 # IoT device states (local cache, synced with ESP32)
 IOT_DEVICES = {
@@ -1251,8 +1251,8 @@ async def iot_status():
                     "fan":   {"name": "Fan",   "state": IOT_DEVICES["fan"]["state"]},
                 }
             }
-    except:
-        pass
+    except Exception as e:
+        print(f"DEBUG IoT: Status check failed for {ESP32_IP}: {e}")
     
     # Return cached state if ESP32 is unreachable
     return {

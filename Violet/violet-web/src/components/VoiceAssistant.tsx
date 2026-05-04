@@ -6,8 +6,8 @@ import { Mic, Send, Settings, Bot, Sparkles, Home } from "lucide-react";
 import SettingsPanel from "./ui/SettingsPanel";
 import IoTPanel from "./ui/IoTPanel";
 import { VoicePoweredOrb } from "@/components/ui/voice-powered-orb";
-import EnergyBeam from "@/components/ui/energy-beam";
 import { AuroraText } from "@/components/ui/aurora-text";
+import AuroraBorealisShader from "@/components/ui/aurora-borealis-shader";
 
 interface Message {
     role: "user" | "assistant";
@@ -76,7 +76,7 @@ export function VoiceAssistant({
     return (
         <div className="chat-app relative overflow-hidden z-0">
             {/* Background */}
-            <EnergyBeam className="absolute inset-0 -z-10 pointer-events-none" />
+            <AuroraBorealisShader />
 
             {/* Header */}
             <header className="chat-header-bar">

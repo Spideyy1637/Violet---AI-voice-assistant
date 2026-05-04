@@ -28,8 +28,8 @@
 // ============================================
 // CONFIGURATION - UPDATE THESE VALUES
 // ============================================
-const char* WIFI_SSID     = "YOUR_WIFI_NAME";      // ← Change this
-const char* WIFI_PASSWORD  = "YOUR_WIFI_PASSWORD";  // ← Change this
+const char* WIFI_SSID     = "POCO M7 Pro 5G";      // ← Change this
+const char* WIFI_PASSWORD  = "spidey78";      // ← Change this
 
 // ============================================
 // RELAY PIN DEFINITIONS
